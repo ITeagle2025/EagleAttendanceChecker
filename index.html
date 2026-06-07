@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eagle Attendance · My Attendance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0ede6;--surface:#faf9f6;--surface2:#ffffff;
+  --border:#ddd9d0;--border2:#c8c3b8;
+  --text:#1a1916;--text2:#6b6760;--text3:#9e9a94;
+  --accent:#1a5c3a;--accent-light:#e8f4ed;--accent-mid:#2d7a52;
+  --danger:#c0392b;--danger-light:#fdf0ee;
+  --warn:#b8660a;--warn-light:#fef6e8;
+  --radius:12px;--radius-sm:8px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
+.header{background:var(--accent);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:60px;}
+.header-logo{display:flex;align-items:center;gap:10px;color:#fff;}
+.header-logo span{font-weight:600;font-size:16px;}
+.header-right{font-size:12px;color:rgba(255,255,255,0.55);}
+.main{max-width:860px;margin:0 auto;padding:2.5rem 1.5rem;}
+.hero{text-align:center;margin-bottom:2.5rem;}
+.hero h1{font-size:28px;font-weight:600;letter-spacing:-0.02em;margin-bottom:8px;}
+.hero p{color:var(--text2);font-size:15px;}
+
+.search-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:1.75rem;margin-bottom:1.5rem;}
+.search-row{display:flex;gap:10px;align-items:flex-end;}
+.form-group{display:flex;flex-direction:column;gap:6px;flex:1;}
+.form-group label{font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em;}
+.form-group input{height:50px;border:1.5px solid var(--border2);border-radius:var(--radius-sm);padding:0 16px;font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.15s;letter-spacing:0.05em;}
+.form-group input:focus{border-color:var(--accent-mid);box-shadow:0 0 0 3px rgba(45,122,82,0.12);}
+.form-group input::placeholder{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:400;letter-spacing:0;color:var(--text3);}
+.search-btn{height:50px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:0 28px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:8px;transition:background 0.15s;}
+.search-btn:hover{background:var(--accent-mid);}
+.search-btn:active{transform:scale(0.98);}
+.search-btn:disabled{opacity:0.6;cursor:not-allowed;transform:none;}
+
+.quick-filters{display:flex;gap:8px;margin-top:1.25rem;flex-wrap:wrap;align-items:center;}
+.qf-label{font-size:12px;color:var(--text3);}
+.qf-btn{padding:6px 16px;border-radius:999px;font-size:12px;font-weight:500;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;font-family:inherit;transition:all 0.15s;}
+.qf-btn:hover,.qf-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+.status-bar{display:none;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:1.5rem;font-weight:500;}
+.status-bar.success{display:flex;background:var(--accent-light);color:var(--accent);}
+.status-bar.error{display:flex;background:var(--danger-light);color:var(--danger);}
+.status-bar.loading{display:flex;background:#f0f0f0;color:var(--text2);}
+
+.results-section{display:none;}
+.results-section.visible{display:block;}
+.emp-header{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1rem;display:flex;align-items:center;gap:16px;}
+.emp-avatar{width:52px;height:52px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:18px;color:#fff;flex-shrink:0;}
+.emp-name{font-size:18px;font-weight:600;}
+.emp-meta{color:var(--text2);font-size:13px;margin-top:3px;}
+
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem;}
+.stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:1rem;text-align:center;}
+.stat-val{font-size:24px;font-weight:600;}
+.stat-label{font-size:11px;color:var(--text2);margin-top:3px;text-transform:uppercase;letter-spacing:0.04em;}
+
+.table-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.table-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.table-header h2{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;}
+.record-count{font-size:12px;background:var(--accent-light);color:var(--accent);padding:3px 10px;border-radius:999px;font-weight:600;}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+thead th{padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;background:var(--bg);border-bottom:1px solid var(--border);}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#f7f6f2;}
+td{padding:12px 16px;vertical-align:middle;}
+.date-cell{font-family:'DM Mono',monospace;font-size:13px;color:var(--text2);}
+.day-cell{font-size:12px;color:var(--text3);}
+.time-in{font-family:'DM Mono',monospace;font-weight:500;font-size:13px;color:var(--accent);}
+.time-out{font-family:'DM Mono',monospace;font-weight:500;font-size:13px;color:#1a3e8c;}
+.hours-cell{font-family:'DM Mono',monospace;font-size:13px;}
+.location-cell{font-size:12px;color:var(--text2);}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;}
+.badge-present{background:var(--accent-light);color:var(--accent);}
+.badge-absent{background:var(--danger-light);color:var(--danger);}
+.badge-warn{background:var(--warn-light);color:var(--warn);}
+
+@media(max-width:600px){
+  .header{padding:0 1rem;}
+  .main{padding:1.5rem 1rem;}
+  .hero h1{font-size:22px;}
+  .search-row{flex-direction:column;}
+  .search-btn{width:100%;justify-content:center;}
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+  thead th:nth-child(6),td:nth-child(6){display:none;}
+}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.footer{text-align:center;color:var(--text3);font-size:12px;padding:2rem;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+    <span>Eagle Attendance Portal</span>
+  </div>
+  <div class="header-right" id="freshTag"></div>
+</div>
+
+<div class="main">
+  <div class="hero">
+    <h1>Check Your Attendance</h1>
+    <p>Enter your Employee Number to view your time in and time out records.</p>
+  </div>
+
+  <div class="search-box">
+    <div class="search-row">
+      <div class="form-group">
+        <label>Your Employee Number</label>
+        <input type="text" id="empInput" placeholder="e.g. 2209268" inputmode="numeric"/>
+      </div>
+      <button class="search-btn" id="searchBtn" onclick="doSearch()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Search
+      </button>
+    </div>
+    <div class="quick-filters">
+      <span class="qf-label">Show:</span>
+      <button class="qf-btn active" onclick="setFilter('today',this)">Today</button>
+      <button class="qf-btn" onclick="setFilter('week',this)">This Week</button>
+      <button class="qf-btn" onclick="setFilter('month',this)">This Month</button>
+      <button class="qf-btn" onclick="setFilter('last',this)">Last Month</button>
+      <button class="qf-btn" onclick="setFilter('all',this)">All</button>
+    </div>
+  </div>
+
+  <div class="status-bar" id="statusBar"></div>
+
+  <div class="results-section" id="resultsSection">
+    <div class="emp-header" id="empHeader"></div>
+    <div class="stats-row" id="statsRow"></div>
+    <div class="table-card">
+      <div class="table-header">
+        <h2>Attendance Records</h2>
+        <span class="record-count" id="recordCount"></span>
+      </div>
+      <div id="tableContainer"></div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">Eagle Environmental Services &amp; Pest Control &nbsp;·&nbsp; For support contact HR</div>
+
+<script>
+// ── Config ──
+const SHEET_ID   = '19VTp9tm_3S8D1ovCsz9TI5-nBDdhcHU1_ugJgohzYNw';
+const SHEET_NAME = 'Eagle Attendance Data';
+
+const SA_EMAIL   = 'eagle-attendance@psyched-silicon-498504-n5.iam.gserviceaccount.com';
+const SA_KEY_ID  = '3c0b6bc24b075ed8f32d5b88ec39991fd6043a69';
+const SA_PEM     = [
+  'MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDC0bMBgrr6YRmU',
+  '6m2ObkTv08k1RW+gXz1GmTppoAQB1S73a+cFcKqBpcFeTvK/ADHz6YHFgQTsOewo',
+  '7KPLA2roXKB8q325D4DawjJBYf9znXMsRKJ39Y7LhTT3Mi3mnqjrzmsQ3HqbIWYX',
+  't+aZglst5g5rK3et05/gyKE3VzPguUsdh4u2az1E25gGrrk4oSiZG235rbBQuz2q',
+  'ivVMxHLFlP1n16a5YHc9H5HB6lP+b7SWBBRp3dtZljm8afIwibpAybEqKdv2lugU',
+  'OhGp6Hbvkll2YfF3flIRA/X1igT+Rz2EpM5h/EQyLsVpBaWbT4sxfUZXEzxlK6nQ',
+  'sYkoMc7jAgMBAAECggEAA4n4pPnheKPj6ZMam2BAa1TfDlMtFG42eD5XU8ze1cOw',
+  'Hzl8EFq8Fi/TI+nuOe8AeUxQGaze0IW61wF5djohKohoN+uLlJ2F+zNU42Aq2khN',
+  'a8vxYZl51xOb4zOrpslSCzqMMlm29nN0XdDu5PH7wwkvUN4Qxf0WpegvGYjBff8H',
+  'kuMViryca67pY5BvPBxUION6BBLxXjRziXi2M/IKJFc0wAWhVrthvfGJhqCEL4Sn',
+  'CuznqCeMzYvQSdAWEM1ytScsLt8oY5ttKH1EEn4h9wK/+zV+Hlk6/VQdvF2NVThr',
+  'KPsLSWDREk4wPVSsEg17XMVSZ5g3V8+iiWYlv6kUnQKBgQDlpZuuLXzoPJx6T+d4',
+  'cChx1R+hx47I2JIkkfghLSoo73t7Z0BQOEe/G8eUDapHJf6otLfSzdKAHPmbUake',
+  'xUC8zAP0WY1BdrJiDzlIkBV3U2qHq4O+EJPeX38fBTkcfe0ex4cX9lN5QFbkgYYi',
+  'B2dSQLc31C3WWKWhjXze8ZgNRwKBgQDZLPKL96Q38GnkhQkY4l6kp+YZfX/l0yjU',
+  'uzHPW944jTw3cYK5c0luMg50lWIscsO27Jk4rDwtvGzqnrYZpvRfD4Qv2XZg66pM',
+  'n4XFms0znib2COlP7asNG9TRrKAbMPMkyAn6tgobcwYZ/f0CL3ljySre5hvscLwl',
+  'gAVuzBZPhQKBgQDhVyPwQgpzCCazjnyfnc7SBENJyDu/sWOWJvXH+D2KdZRBfwuI',
+  'q/EbAfNQwCf6MLo2aT6HyBdqRwRW+EZvPzdLCxZGSylkt0hLGI0pOtkVgfDit9ZK',
+  'RpISfrqKgeGMp7Rpo3hYdwlpzUx2ZPJtqb4k5APk8HsZ/VppsCB7061UOQKBgQC6',
+  'hQ3zBEc3+/UWXOPJSXH7fG/06IJWApsIyZUoAEDE1Rgojga1+7vPNpKPslTU0+Qf',
+  'UOjvcY1lwnTQtGq1cVxj4FGpPt2atAxZLpCXfDJM6MGRgWnQSdEkuwh25AnGEK5i',
+  'oqNffcUEei99V1Ra8icReo6lTYAh+1i75E3GMOXgeQKBgGZyt2oIWTky/iQ8ZCrG',
+  '3vkrS+YuaRTLxs4opuJcUATJjl4vBSO9tgreSl81NT380aN6PvrJKTJzPF9BJg/3',
+  'tfmXa2thKXgT00sEzUnI44JAmmD/I2ALKsXmKgtPo32NH5y/2Qfj/m0NXfCJdKB8',
+  'qFQNhbBULQlfuWtNdjMwKVPc'
+].join('');
+
+// ── Base64url helpers (no spread operator — avoids stack overflow on large buffers) ──
+function b64urlBytes(buf){
+  const bytes = new Uint8Array(buf);
+  let str = '';
+  for(let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
+  return btoa(str).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function b64urlStr(s){
+  const encoded = new TextEncoder().encode(s);
+  return b64urlBytes(encoded.buffer);
+}
+
+async function importPrivateKey(){
+  const der = Uint8Array.from(atob(SA_PEM), c => c.charCodeAt(0));
+  return crypto.subtle.importKey(
+    'pkcs8', der.buffer,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false, ['sign']
+  );
+}
+
+async function getAccessToken(){
+  const now    = Math.floor(Date.now() / 1000);
+  const header = b64urlStr(JSON.stringify({ alg:'RS256', typ:'JWT', kid:SA_KEY_ID }));
+  const claim  = b64urlStr(JSON.stringify({
+    iss:   SA_EMAIL,
+    scope: 'https://www.googleapis.com/auth/spreadsheets.readonly',
+    aud:   'https://oauth2.googleapis.com/token',
+    iat:   now,
+    exp:   now + 3600
+  }));
+  const msg = new TextEncoder().encode(header + '.' + claim);
+  const key = await importPrivateKey();
+  const sig = await crypto.subtle.sign({ name:'RSASSA-PKCS1-v1_5' }, key, msg);
+  const jwt = header + '.' + claim + '.' + b64urlBytes(sig);
+
+  const r = await fetch('https://oauth2.googleapis.com/token', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body:    `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`
+  });
+  const d = await r.json();
+  if(!d.access_token) throw new Error('Auth failed: ' + (d.error_description || d.error || JSON.stringify(d)));
+  return d.access_token;
+}
+
+async function fetchSheetRows(token){
+  const range = encodeURIComponent(SHEET_NAME + '!A:J');
+  const url   = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}`;
+  const r     = await fetch(url, { headers:{ Authorization: 'Bearer ' + token } });
+  if(!r.ok){
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.error?.message || 'Sheets API error ' + r.status);
+  }
+  const d = await r.json();
+  return d.values || [];
+}
+
+// ── Filters ──
+let filterFrom = null, filterTo = null;
+setFilter('today', null);
+
+function setFilter(type, btn){
+  if(btn){ document.querySelectorAll('.qf-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+  const t = new Date();
+  if(type === 'today'){
+    filterFrom = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    filterTo   = new Date(t.getFullYear(), t.getMonth(), t.getDate(), 23, 59, 59);
+  } else if(type === 'week'){
+    const day = t.getDay();
+    const s   = new Date(t);
+    s.setDate(t.getDate() - day + (day === 0 ? -6 : 1));
+    s.setHours(0,0,0,0);
+    filterFrom = s;
+    filterTo   = new Date(t.getFullYear(), t.getMonth(), t.getDate(), 23, 59, 59);
+  } else if(type === 'month'){
+    filterFrom = new Date(t.getFullYear(), t.getMonth(), 1);
+    filterTo   = new Date(t.getFullYear(), t.getMonth(), t.getDate(), 23, 59, 59);
+  } else if(type === 'last'){
+    filterFrom = new Date(t.getFullYear(), t.getMonth() - 1, 1);
+    filterTo   = new Date(t.getFullYear(), t.getMonth(), 0, 23, 59, 59);
+  } else { filterFrom = null; filterTo = null; }
+}
+
+function parseDate(str){
+  if(!str) return null;
+  const p = str.split('/');
+  if(p.length === 3) return new Date(Number(p[2]), Number(p[0]) - 1, Number(p[1]));
+  return new Date(str);
+}
+
+// ── Search ──
+async function doSearch(){
+  const empNo = document.getElementById('empInput').value.trim();
+  if(!empNo){ showStatus('Please enter your Employee Number.', 'error'); return; }
+
+  if(!window.crypto || !window.crypto.subtle){
+    showStatus('Error: This page requires HTTPS or a local web server (not file://). Please host it properly.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('searchBtn');
+  btn.disabled = true;
+  btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Searching...`;
+  showStatus('Authenticating with Google...', 'loading');
+
+  try{
+    const token   = await getAccessToken();
+    showStatus('Loading attendance data...', 'loading');
+    const allRows = await fetchSheetRows(token);
+
+    if(allRows.length < 2){ showStatus('No attendance data found. Please contact HR.', 'error'); return; }
+
+    const empRows = allRows.slice(1).filter(r => r && String(r[3] || '').trim() === empNo);
+
+    if(empRows.length === 0){
+      showStatus(`Employee No. ${empNo} not found. Please check your number or contact HR.`, 'error');
+      document.getElementById('resultsSection').classList.remove('visible');
+      return;
+    }
+
+    let filtered = empRows;
+    if(filterFrom || filterTo){
+      filtered = empRows.filter(r => {
+        const d = parseDate(r[0]);
+        if(!d) return true;
+        if(filterFrom && d < filterFrom) return false;
+        if(filterTo   && d > filterTo)   return false;
+        return true;
+      });
+    }
+
+    if(filtered.length === 0){
+      showStatus(`No records for Employee ${empNo} in this period. Try "All".`, 'error');
+      document.getElementById('resultsSection').classList.remove('visible');
+      return;
+    }
+
+    document.getElementById('statusBar').className = 'status-bar';
+    renderResults(empNo, filtered);
+
+  }catch(err){
+    showStatus('Error: ' + err.message, 'error');
+    console.error(err);
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Search`;
+  }
+}
+
+document.getElementById('empInput').addEventListener('keydown', e => { if(e.key === 'Enter') doSearch(); });
+
+// ── Render ──
+function getStatus(r){
+  const loc = String(r[6] || '').toLowerCase();
+  if(loc.includes('no log') || (!r[7] && !r[8])) return 'absent';
+  if(!r[8] || r[7] === r[8] || String(r[9] || '').includes('00:00:00')) return 'partial';
+  return 'present';
+}
+function getInitials(name){
+  return String(name || '').split(' ').slice(0,2).map(w => w[0] || '').join('').toUpperCase();
+}
+
+function renderResults(empNo, rows){
+  const name = rows[0][2] || empNo;
+  document.getElementById('empHeader').innerHTML = `
+    <div class="emp-avatar">${getInitials(name)}</div>
+    <div><div class="emp-name">${name}</div><div class="emp-meta">Employee No. ${empNo}</div></div>`;
+
+  const present = rows.filter(r => getStatus(r) === 'present').length;
+  const absent  = rows.filter(r => getStatus(r) === 'absent').length;
+  const partial = rows.filter(r => getStatus(r) === 'partial').length;
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card"><div class="stat-val">${rows.length}</div><div class="stat-label">Days</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--accent)">${present}</div><div class="stat-label">Present</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--danger)">${absent}</div><div class="stat-label">No Log</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--warn)">${partial}</div><div class="stat-label">Partial</div></div>`;
+
+  document.getElementById('recordCount').textContent = `${rows.length} record${rows.length !== 1 ? 's' : ''}`;
+
+  let tableRows = '';
+  rows.forEach(r => {
+    const s     = getStatus(r);
+    const badge = s === 'present' ? '<span class="badge badge-present">Present</span>'
+                : s === 'absent'  ? '<span class="badge badge-absent">No Log</span>'
+                :                   '<span class="badge badge-warn">Partial</span>';
+    const timeOut = (r[8] && r[8] !== r[7]) ? r[8] : '—';
+    const hours   = (r[9] && !r[9].includes('00:00:00')) ? r[9].replace(' hrs','') : '—';
+    tableRows += `<tr>
+      <td class="date-cell">${r[0]||'—'}</td>
+      <td class="day-cell">${r[1]||'—'}</td>
+      <td>${badge}</td>
+      <td class="time-in">${r[7]||'—'}</td>
+      <td class="time-out">${timeOut}</td>
+      <td class="hours-cell">${hours}</td>
+      <td class="location-cell">${r[6]||'—'}</td>
+    </tr>`;
+  });
+
+  document.getElementById('tableContainer').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Date</th><th>Day</th><th>Status</th>
+        <th>Time In</th><th>Time Out</th><th>Hours</th><th>Location</th>
+      </tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>`;
+
+  document.getElementById('resultsSection').classList.add('visible');
+  document.getElementById('resultsSection').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function showStatus(msg, type){
+  const bar = document.getElementById('statusBar');
+  bar.textContent = msg;
+  bar.className = 'status-bar ' + type;
+}
+</script>
+</body>
+</html>
