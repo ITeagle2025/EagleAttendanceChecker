@@ -353,9 +353,14 @@ function getInitials(name){
 
 function renderResults(empNo, rows){
   const name = rows[0][2] || empNo;
+  const mloc = rows[0][4] || '—';
   document.getElementById('empHeader').innerHTML = `
     <div class="emp-avatar">${getInitials(name)}</div>
-    <div><div class="emp-name">${name}</div><div class="emp-meta">Employee No. ${empNo}</div></div>`;
+    <div>
+      <div class="emp-name">${name}</div>
+      <div class="emp-meta">Employee No. ${empNo}</div>
+      <div class="emp-meta">M Location: <strong style="color:var(--text)">${mloc}</strong></div>
+    </div>`;
 
   const present = rows.filter(r => getStatus(r) === 'present').length;
   const absent  = rows.filter(r => getStatus(r) === 'absent').length;
