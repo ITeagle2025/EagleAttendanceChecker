@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eagle Attendance · Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0ede6;--surface:#faf9f6;--surface2:#ffffff;
+  --border:#ddd9d0;--border2:#c8c3b8;
+  --text:#1a1916;--text2:#6b6760;--text3:#9e9a94;
+  --accent:#1a5c3a;--accent-light:#e8f4ed;--accent-mid:#2d7a52;
+  --danger:#c0392b;--danger-light:#fdf0ee;
+  --warn:#b8660a;--warn-light:#fef6e8;
+  --radius:12px;--radius-sm:8px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;}
+.header{background:var(--accent);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;}
+.header-logo{display:flex;align-items:center;gap:10px;color:#fff;}
+.header-logo span{font-weight:600;font-size:16px;}
+.header-right{display:flex;align-items:center;gap:12px;}
+.admin-badge{background:rgba(255,255,255,0.15);color:#fff;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:500;}
+.logout-btn{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.25);padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;}
+.logout-btn:hover{background:rgba(255,255,255,0.2);}
+.main{max-width:820px;margin:0 auto;padding:2.5rem 1.5rem;}
+
+#loginOverlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;}
+.login-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:2.5rem;width:100%;max-width:380px;box-shadow:0 4px 24px rgba(0,0,0,0.08);}
+.login-logo{width:52px;height:52px;background:var(--accent);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;}
+.login-card h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;}
+.login-card p{color:var(--text2);font-size:13px;text-align:center;margin-bottom:1.75rem;}
+.form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:1rem;}
+.form-group label{font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.04em;}
+.form-group input{height:44px;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:0 14px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.15s;}
+.form-group input:focus{border-color:var(--accent-mid);box-shadow:0 0 0 3px rgba(45,122,82,0.12);}
+.login-btn{width:100%;height:44px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:0.5rem;transition:background 0.15s;}
+.login-btn:hover{background:var(--accent-mid);}
+.login-error{background:var(--danger-light);color:var(--danger);padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;text-align:center;margin-top:0.75rem;display:none;}
+
+#pageContent{display:none;}
+.page-title{font-size:22px;font-weight:600;margin-bottom:6px;}
+.page-sub{color:var(--text2);font-size:14px;margin-bottom:2rem;}
+
+.upload-zone{background:var(--surface2);border:1.5px dashed var(--border2);border-radius:var(--radius);padding:2.5rem;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;margin-bottom:1.5rem;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent-mid);background:var(--accent-light);}
+.upload-zone input[type="file"]{display:none;}
+.upload-icon{width:52px;height:52px;background:var(--accent-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;}
+.upload-title{font-weight:600;font-size:16px;margin-bottom:6px;}
+.upload-sub{color:var(--text2);font-size:13px;line-height:1.6;}
+.upload-btn{display:inline-block;margin-top:1rem;background:var(--accent);color:#fff;padding:9px 22px;border-radius:999px;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:inherit;}
+
+.status-bar{display:none;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:1.5rem;font-weight:500;line-height:1.5;}
+.status-bar.success{display:flex;background:var(--accent-light);color:var(--accent);}
+.status-bar.error{display:flex;background:var(--danger-light);color:var(--danger);}
+.status-bar.loading{display:flex;background:#f0f0f0;color:var(--text2);}
+
+.progress-wrap{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem;display:none;}
+.progress-wrap.visible{display:block;}
+.progress-title{font-size:14px;font-weight:500;margin-bottom:10px;}
+.progress-bar-bg{background:var(--bg);border-radius:999px;height:8px;overflow:hidden;}
+.progress-bar-fill{background:var(--accent);height:100%;border-radius:999px;transition:width 0.4s;width:0%;}
+.progress-detail{font-size:12px;color:var(--text3);margin-top:8px;}
+
+.data-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1.5rem;display:none;}
+.data-card.visible{display:block;}
+.data-card-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.data-card-header h2{font-size:14px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;}
+.data-card-body{padding:1.25rem;}
+.data-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.dstat{background:var(--bg);border-radius:var(--radius-sm);padding:1rem;text-align:center;}
+.dstat-val{font-size:22px;font-weight:600;}
+.dstat-label{font-size:11px;color:var(--text2);margin-top:2px;}
+.sheet-link{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-size:13px;text-decoration:none;font-weight:500;}
+.sheet-link:hover{text-decoration:underline;}
+.footer{text-align:center;color:var(--text3);font-size:12px;padding:2rem;}
+
+/* ── Delete / Monitor sections ── */
+.section-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1.5rem;overflow:hidden;}
+.section-head{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.section-head h2{font-size:14px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;display:flex;align-items:center;gap:8px;}
+.section-body{padding:1.25rem;}
+.dates-monitor{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;}
+.date-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border);transition:background 0.1s,border-color 0.1s;}
+.date-row.selected{background:var(--danger-light);border-color:#e8a09a;}
+.date-row-left{display:flex;align-items:center;gap:10px;}
+.date-check{width:16px;height:16px;accent-color:var(--danger);cursor:pointer;flex-shrink:0;}
+.date-label{font-family:'DM Mono',monospace;font-size:14px;font-weight:500;}
+.date-count{font-size:12px;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:999px;border:1px solid var(--border);}
+.delete-actions{display:flex;align-items:center;gap:10px;margin-top:1rem;flex-wrap:wrap;}
+.btn-danger{background:var(--danger);color:#fff;border:none;border-radius:var(--radius-sm);padding:10px 20px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;transition:opacity 0.15s;}
+.btn-danger:hover{opacity:0.88;}
+.btn-danger:disabled{opacity:0.45;cursor:not-allowed;}
+.btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 18px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;}
+.btn-outline:hover{background:var(--bg);}
+.sel-count{font-size:13px;color:var(--text2);}
+.empty-msg{text-align:center;padding:2rem;color:var(--text3);font-size:13px;}
+.refresh-btn{background:transparent;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:5px 12px;font-size:12px;color:var(--text2);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;}
+.refresh-btn:hover{background:var(--bg);}
+.delete-status{display:none;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;margin-top:1rem;}
+.delete-status.success{display:flex;background:var(--accent-light);color:var(--accent);}
+.delete-status.error{display:flex;background:var(--danger-light);color:var(--danger);}
+.delete-status.loading{display:flex;background:#f0f0f0;color:var(--text2);}
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:none;align-items:center;justify-content:center;}
+.confirm-overlay.visible{display:flex;}
+.confirm-box{background:var(--surface2);border-radius:var(--radius);padding:2rem;max-width:420px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,0.18);}
+.confirm-box h3{font-size:17px;font-weight:600;margin-bottom:8px;}
+.confirm-box p{color:var(--text2);font-size:14px;margin-bottom:1rem;line-height:1.6;}
+.confirm-dates{background:var(--danger-light);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:1.5rem;font-family:'DM Mono',monospace;font-size:13px;color:var(--danger);line-height:1.8;}
+.confirm-btns{display:flex;gap:10px;justify-content:flex-end;}
+</style>
+</head>
+<body>
+
+<div id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2">
+        <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+      </svg>
+    </div>
+    <h1>Admin Access</h1>
+    <p>Eagle Attendance Portal · HR and Admin Only</p>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="Enter username" autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="Enter password" autocomplete="current-password"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="loginError">Incorrect username or password.</div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+    <span>Eagle Attendance Portal</span>
+  </div>
+  <div class="header-right">
+    <span class="admin-badge">HR Admin</span>
+    <button class="logout-btn" onclick="doLogout()">Sign out</button>
+  </div>
+</div>
+
+<div class="main" id="pageContent">
+  <div class="page-title">Upload Attendance Data</div>
+  <div class="page-sub">Upload the Excel export from SSRS. New records are automatically added to Google Sheets — duplicates are skipped and old data is never deleted.</div>
+
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept=".xlsx,.xls">
+    <div class="upload-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <div class="upload-title">Drag & drop Excel file here</div>
+    <div class="upload-sub">Export from SSRS → Eagle-Attendance report → Excel format<br>New rows added to Google Sheets automatically. Duplicates skipped.</div>
+    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose File</button>
+  </div>
+
+  <div class="status-bar" id="statusBar"></div>
+
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-title" id="progressTitle">Uploading to Google Sheets...</div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+    <div class="progress-detail" id="progressDetail"></div>
+  </div>
+
+  <div class="data-card" id="dataCard">
+    <div class="data-card-header">
+      <h2>Last Upload Summary</h2>
+      <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/19VTp9tm_3S8D1ovCsz9TI5-nBDdhcHU1_ugJgohzYNw/edit" target="_blank">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Open Google Sheet
+      </a>
+    </div>
+    <div class="data-card-body">
+      <div class="data-stats">
+        <div class="dstat"><div class="dstat-val" id="statNew">—</div><div class="dstat-label">New Rows Added</div></div>
+        <div class="dstat"><div class="dstat-val" id="statSkipped">—</div><div class="dstat-label">Duplicates Skipped</div></div>
+        <div class="dstat"><div class="dstat-val" id="statTotal">—</div><div class="dstat-label">Total in Sheet</div></div>
+        <div class="dstat"><div class="dstat-val" id="statTime">—</div><div class="dstat-label">Uploaded At</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Dates Monitor ── -->
+  <div class="section-card" id="monitorCard" style="display:none;">
+    <div class="section-head">
+      <h2>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Uploaded Dates in Sheet
+      </h2>
+      <button class="refresh-btn" onclick="loadDates()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        Refresh
+      </button>
+    </div>
+    <div class="section-body">
+      <div id="monitorList"><div class="empty-msg">Loading dates...</div></div>
+    </div>
+  </div>
+
+  <!-- ── Delete by Date ── -->
+  <div class="section-card" id="deleteCard" style="display:none;">
+    <div class="section-head">
+      <h2>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        Delete Records by Date
+      </h2>
+      <span id="selCount" class="sel-count">0 dates selected</span>
+    </div>
+    <div class="section-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;">Check the dates you want to remove, then click Delete. <strong style="color:var(--danger)">This cannot be undone.</strong></p>
+      <div class="dates-monitor" id="deleteList"><div class="empty-msg">Loading...</div></div>
+      <div class="delete-actions">
+        <button class="btn-danger" id="deleteBtn" onclick="confirmDelete()" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+          Delete Selected
+        </button>
+        <button class="btn-outline" onclick="clearSelection()">Clear Selection</button>
+      </div>
+      <div class="delete-status" id="deleteStatus"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Confirm dialog -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3>⚠️ Confirm Deletion</h3>
+    <p>You are about to permanently delete <strong id="confirmRowCount"></strong> rows for these dates:</p>
+    <div class="confirm-dates" id="confirmDateList"></div>
+    <p style="font-size:13px;color:var(--danger);margin-bottom:1.5rem;">This action <strong>cannot be undone</strong>.</p>
+    <div class="confirm-btns">
+      <button class="btn-outline" onclick="document.getElementById('confirmOverlay').classList.remove('visible')">Cancel</button>
+      <button class="btn-danger" onclick="executeDelete()">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="footer">Eagle Environmental Services &amp; Pest Control · Admin Portal</div>
+
+<script>
+// ── Credentials (admin only — keep this file private) ──
+const SHEET_ID     = '19VTp9tm_3S8D1ovCsz9TI5-nBDdhcHU1_ugJgohzYNw';
+const SHEET_NAME   = 'Eagle Attendance Data';
+const CLIENT_EMAIL = 'eagle-attendance@psyched-silicon-498504-n5.iam.gserviceaccount.com';
+const PRIVATE_KEY  = `-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDC0bMBgrr6YRmU\n6m2ObkTv08k1RW+gXz1GmTppoAQB1S73a+cFcKqBpcFeTvK/ADHz6YHFgQTsOewo\n7KPLA2roXKB8q325D4DawjJBYf9znXMsRKJ39Y7LhTT3Mi3mnqjrzmsQ3HqbIWYX\nt+aZglst5g5rK3et05/gyKE3VzPguUsdh4u2az1E25gGrrk4oSiZG235rbBQuz2q\nivVMxHLFlP1n16a5YHc9H5HB6lP+b7SWBBRp3dtZljm8afIwibpAybEqKdv2lugU\nOhGp6Hbvkll2YfF3flIRA/X1igT+Rz2EpM5h/EQyLsVpBaWbT4sxfUZXEzxlK6nQ\nsYkoMc7jAgMBAAECggEAA4n4pPnheKPj6ZMam2BAa1TfDlMtFG42eD5XU8ze1cOw\nHzl8EFq8Fi/TI+nuOe8AeUxQGaze0IW61wF5djohKohoN+uLlJ2F+zNU42Aq2khN\na8vxYZl51xOb4zOrpslSCzqMMlm29nN0XdDu5PH7wwkvUN4Qxf0WpegvGYjBff8H\nkuMViryca67pY5BvPBxUION6BBLxXjRziXi2M/IKJFc0wAWhVrthvfGJhqCEL4Sn\nCuznqCeMzYvQSdAWEM1ytScsLt8oY5ttKH1EEn4h9wK/+zV+Hlk6/VQdvF2NVThr\nKPsLSWDREk4wPVSsEg17XMVSZ5g3V8+iiWYlv6kUnQKBgQDlpZuuLXzoPJx6T+d4\ncChx1R+hx47I2JIkkfghLSoo73t7Z0BQOEe/G8eUDapHJf6otLfSzdKAHPmbUake\nxUC8zAP0WY1BdrJiDzlIkBV3U2qHq4O+EJPeX38fBTkcfe0ex4cX9lN5QFbkgYYi\nB2dSQLc31C3WWKWhjXze8ZgNRwKBgQDZLPKL96Q38GnkhQkY4l6kp+YZfX/l0yjU\nuzHPW944jTw3cYK5c0luMg50lWIscsO27Jk4rDwtvGzqnrYZpvRfD4Qv2XZg66pM\nn4XFms0znib2COlP7asNG9TRrKAbMPMkyAn6tgobcwYZ/f0CL3ljySre5hvscLwl\ngAVuzBZPhQKBgQDhVyPwQgpzCCazjnyfnc7SBENJyDu/sWOWJvXH+D2KdZRBfwuI\nq/EbAfNQwCf6MLo2aT6HyBdqRwRW+EZvPzdLCxZGSylkt0hLGI0pOtkVgfDit9ZK\nRpISfrqKgeGMp7Rpo3hYdwlpzUx2ZPJtqb4k5APk8HsZ/VppsCB7061UOQKBgQC6\nhQ3zBEc3+/UWXOPJSXH7fG/06IJWApsIyZUoAEDE1Rgojga1+7vPNpKPslTU0+Qf\nUOjvcY1lwnTQtGq1cVxj4FGpPt2atAxZLpCXfDJM6MGRgWnQSdEkuwh25AnGEK5i\noqNffcUEei99V1Ra8icReo6lTYAh+1i75E3GMOXgeQKBgGZyt2oIWTky/iQ8ZCrG\n3vkrS+YuaRTLxs4opuJcUATJjl4vBSO9tgreSl81NT380aN6PvrJKTJzPF9BJg/3\ntfmXa2thKXgT00sEzUnI44JAmmD/I2ALKsXmKgtPo32NH5y/2Qfj/m0NXfCJdKB8\nqFQNhbBULQlfuWtNdjMwKVPc\n-----END PRIVATE KEY-----\n`;
+
+const ADMIN_USERS = [
+  { username: 'eaglestaff', password: 'eaglestaff' },
+  { username: 'IT', password: 'IT@2025' },
+  { username: 'hr',    password: 'EagleHR@2026'  },
+];
+
+// ── Login ──
+function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const ok = ADMIN_USERS.find(x => x.username===u && x.password===p);
+  if (ok) {
+    document.getElementById('loginOverlay').style.display='none';
+    document.getElementById('pageContent').style.display='block';
+    sessionStorage.setItem('eagle_admin','1');
+    loadDates();
+  } else {
+    document.getElementById('loginError').style.display='block';
+  }
+}
+function doLogout(){ sessionStorage.removeItem('eagle_admin'); location.reload(); }
+if (sessionStorage.getItem('eagle_admin')==='1'){
+  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('pageContent').style.display='block';
+}
+['loginUser','loginPass'].forEach(id=>
+  document.getElementById(id).addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); })
+);
+
+// ── Upload zone ──
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.classList.add('drag');});
+uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)handleFile(f);});
+document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target.files[0]);});
+
+// ── Parse Excel ──
+function handleFile(file){
+  showStatus('Reading Excel file...','loading');
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'mm/dd/yyyy'});
+
+      let headerRow=-1;
+      for(let i=0;i<raw.length;i++){
+        if(raw[i].map(c=>String(c||'').toLowerCase()).some(c=>c.includes('emp no'))){headerRow=i;break;}
+      }
+      if(headerRow===-1) throw new Error('Cannot find header row. Make sure this is the Eagle Attendance Excel file.');
+
+      const headers=raw[headerRow].map(h=>String(h||'').trim());
+      const col=n=>headers.findIndex(h=>h.toLowerCase().includes(n.toLowerCase()));
+      const iDate=col('Date'),iDN=col('DN'),iName=col('Name'),iEmp=col('Emp No'),
+            iMLoc=col('M Location'),iSt=col('status'),iLoc=col('P Location'),
+            iIn=col('Time In'),iOut=col('Time Out'),iHours=col('Total Hours');
+
+      const rows=[];
+      for(let i=headerRow+1;i<raw.length;i++){
+        const r=raw[i];
+        if(!r||r.length===0) continue;
+        const empNo=String(r[iEmp]||'').trim();
+        if(!empNo||empNo==='undefined') continue;
+        rows.push([
+          String(r[iDate]||'').trim(),
+          String(r[iDN]||'').trim(),
+          String(r[iName]||'').trim(),
+          empNo,
+          String(r[iMLoc]||'').trim(),
+          String(r[iSt]||'').trim(),
+          String(r[iLoc]||'').trim(),
+          String(r[iIn]||'').trim(),
+          String(r[iOut]||'').trim(),
+          String(r[iHours]||'').trim(),
+        ]);
+      }
+      showStatus(`Read ${rows.length} records. Connecting to Google Sheets...`,'loading');
+      await pushToSheets(rows);
+    }catch(err){
+      showStatus('Error: '+err.message,'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── JWT Auth (robust — no spread on large buffers) ──
+function b64urlBytes(buf){
+  const bytes=new Uint8Array(buf);
+  let str='';
+  for(let i=0;i<bytes.length;i++) str+=String.fromCharCode(bytes[i]);
+  return btoa(str).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function b64urlStr(s){
+  return b64urlBytes(new TextEncoder().encode(s).buffer);
+}
+async function getAccessToken(){
+  const now=Math.floor(Date.now()/1000);
+  const header=b64urlStr(JSON.stringify({alg:'RS256',typ:'JWT'}));
+  const claim =b64urlStr(JSON.stringify({iss:CLIENT_EMAIL,scope:'https://www.googleapis.com/auth/spreadsheets',aud:'https://oauth2.googleapis.com/token',exp:now+3600,iat:now}));
+  const sigInput=new TextEncoder().encode(header+'.'+claim);
+  const pemBody=PRIVATE_KEY.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\n/g,'');
+  const binaryDer=Uint8Array.from(atob(pemBody),c=>c.charCodeAt(0));
+  const cryptoKey=await crypto.subtle.importKey('pkcs8',binaryDer.buffer,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['sign']);
+  const sig=await crypto.subtle.sign({name:'RSASSA-PKCS1-v1_5'},cryptoKey,sigInput);
+  const jwt=header+'.'+claim+'.'+b64urlBytes(sig);
+  const resp=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:`grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`});
+  const data=await resp.json();
+  if(!data.access_token) throw new Error('Auth failed: '+(data.error_description||data.error||JSON.stringify(data)));
+  return data.access_token;
+}
+
+// ── Push to Sheets ──
+async function pushToSheets(newRows){
+  document.getElementById('progressWrap').classList.add('visible');
+  setProgress(10,'Authenticating with Google...');
+  let token;
+  try{ token=await getAccessToken(); }
+  catch(e){ throw new Error('Google auth failed. Try regenerating the service account key.'); }
+
+  setProgress(30,'Fetching existing data to check duplicates...');
+  const base=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}`;
+  const hdrs={'Authorization':'Bearer '+token};
+  const enc=encodeURIComponent(SHEET_NAME);
+  const existing=await fetch(`${base}/values/${enc}!A:J`,{headers:hdrs}).then(r=>r.json());
+  const existingRows=existing.values||[];
+
+  // Build duplicate key: Date|EmpNo|TimeIn
+  const existingKeys=new Set();
+  for(let i=1;i<existingRows.length;i++){
+    const r=existingRows[i];
+    if(r&&r[0]&&r[3]) existingKeys.add(`${r[0]}|${r[3]}|${r[7]||''}`);
+  }
+
+  setProgress(55,'Filtering duplicates...');
+  const toAdd=newRows.filter(r=>!existingKeys.has(`${r[0]}|${r[3]}|${r[7]||''}`));
+  const skipped=newRows.length-toAdd.length;
+
+  if(toAdd.length===0){
+    setProgress(100,'Done.');
+    setTimeout(()=>document.getElementById('progressWrap').classList.remove('visible'),1500);
+    showSummary(0,skipped,existingRows.length-1);
+    showStatus(`No new records — all ${skipped} rows already exist in Google Sheets.`,'success');
+    return;
+  }
+
+  setProgress(70,`Adding ${toAdd.length} new rows...`);
+  const appendResp=await fetch(`${base}/values/${enc}!A:J:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,{
+    method:'POST',headers:{...hdrs,'Content-Type':'application/json'},
+    body:JSON.stringify({values:toAdd})
+  });
+  const appendData=await appendResp.json();
+  if(appendData.error) throw new Error('Sheets error: '+appendData.error.message);
+
+  setProgress(100,'Done!');
+  setTimeout(()=>document.getElementById('progressWrap').classList.remove('visible'),1500);
+  const total=(existingRows.length-1)+toAdd.length;
+  showSummary(toAdd.length,skipped,total);
+  showStatus(`✓ ${toAdd.length} new records added to Google Sheets. ${skipped} duplicates skipped.`,'success');
+}
+
+function setProgress(pct,msg){
+  document.getElementById('progressFill').style.width=pct+'%';
+  document.getElementById('progressDetail').textContent=msg;
+}
+function showSummary(added,skipped,total){
+  document.getElementById('statNew').textContent=added;
+  document.getElementById('statSkipped').textContent=skipped;
+  document.getElementById('statTotal').textContent=total.toLocaleString();
+  document.getElementById('statTime').textContent=new Date().toLocaleTimeString();
+  document.getElementById('dataCard').classList.add('visible');
+}
+function showStatus(msg,type){
+  const bar=document.getElementById('statusBar');
+  bar.textContent=msg;
+  bar.className='status-bar '+type;
+}
+
+// ── Dates Monitor & Delete ──
+let allSheetRows = [];   // cached full sheet rows (index 0 = header, 1+ = data)
+let dateSummary  = {};   // { 'MM/DD/YYYY': count }
+
+async function loadDates(){
+  document.getElementById('monitorCard').style.display='block';
+  document.getElementById('deleteCard').style.display='block';
+  document.getElementById('monitorList').innerHTML='<div class="empty-msg">Loading...</div>';
+  document.getElementById('deleteList').innerHTML='<div class="empty-msg">Loading...</div>';
+
+  try{
+    const token = await getAccessToken();
+    const base  = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}`;
+    const enc   = encodeURIComponent(SHEET_NAME);
+    const resp  = await fetch(`${base}/values/${enc}!A:J`,{headers:{'Authorization':'Bearer '+token}});
+    const data  = await resp.json();
+    allSheetRows = data.values || [];
+
+    // Build date summary (col 0 = Date)
+    dateSummary = {};
+    for(let i=1;i<allSheetRows.length;i++){
+      const d = String(allSheetRows[i][0]||'').trim();
+      if(d) dateSummary[d] = (dateSummary[d]||0) + 1;
+    }
+
+    const sorted = Object.keys(dateSummary).sort((a,b)=>{
+      const pa=a.split('/'), pb=b.split('/');
+      return new Date(pa[2],pa[0]-1,pa[1]) - new Date(pb[2],pb[0]-1,pb[1]);
+    });
+
+    if(sorted.length === 0){
+      document.getElementById('monitorList').innerHTML='<div class="empty-msg">No data found in sheet.</div>';
+      document.getElementById('deleteList').innerHTML='<div class="empty-msg">No dates to delete.</div>';
+      return;
+    }
+
+    // Monitor list (read-only)
+    document.getElementById('monitorList').innerHTML = sorted.map(d=>`
+      <div class="date-row">
+        <span class="date-label">${d}</span>
+        <span class="date-count">${dateSummary[d]} rows</span>
+      </div>`).join('');
+
+    // Delete list (checkboxes)
+    document.getElementById('deleteList').innerHTML = sorted.map(d=>`
+      <div class="date-row" id="drow-${d.replace(/\//g,'_')}">
+        <div class="date-row-left">
+          <input type="checkbox" class="date-check" value="${d}" onchange="onCheckChange()">
+          <span class="date-label">${d}</span>
+        </div>
+        <span class="date-count">${dateSummary[d]} rows</span>
+      </div>`).join('');
+
+  }catch(err){
+    document.getElementById('monitorList').innerHTML=`<div class="empty-msg" style="color:var(--danger)">Error: ${err.message}</div>`;
+    document.getElementById('deleteList').innerHTML='';
+  }
+}
+
+function onCheckChange(){
+  const checked = getSelectedDates();
+  document.getElementById('selCount').textContent = checked.length + ' date' + (checked.length!==1?'s':'') + ' selected';
+  document.getElementById('deleteBtn').disabled = checked.length === 0;
+  // Highlight rows
+  document.querySelectorAll('.date-check').forEach(cb=>{
+    const row = document.getElementById('drow-'+cb.value.replace(/\//g,'_'));
+    if(row) row.classList.toggle('selected', cb.checked);
+  });
+}
+
+function getSelectedDates(){
+  return Array.from(document.querySelectorAll('.date-check:checked')).map(cb=>cb.value);
+}
+
+function clearSelection(){
+  document.querySelectorAll('.date-check').forEach(cb=>{ cb.checked=false; });
+  onCheckChange();
+}
+
+function confirmDelete(){
+  const dates = getSelectedDates();
+  if(!dates.length) return;
+  const totalRows = dates.reduce((s,d)=>s+(dateSummary[d]||0),0);
+  document.getElementById('confirmRowCount').textContent = totalRows + ' row' + (totalRows!==1?'s':'');
+  document.getElementById('confirmDateList').innerHTML = dates.join('<br>');
+  document.getElementById('confirmOverlay').classList.add('visible');
+}
+
+async function executeDelete(){
+  document.getElementById('confirmOverlay').classList.remove('visible');
+  const dates = new Set(getSelectedDates());
+  if(!dates.size) return;
+
+  setDeleteStatus('Authenticating...','loading');
+  document.getElementById('deleteBtn').disabled = true;
+
+  try{
+    const token = await getAccessToken();
+    const base  = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}`;
+    const hdrs  = {'Authorization':'Bearer '+token,'Content-Type':'application/json'};
+
+    // Get current sheet to find row indices (1-based, skip header row 0)
+    setDeleteStatus('Fetching latest sheet data...','loading');
+    const resp = await fetch(`${base}/values/${encodeURIComponent(SHEET_NAME)}!A:A`,{headers:{'Authorization':'Bearer '+token}});
+    const colA = (await resp.json()).values || [];
+
+    // Collect row indices to delete (0-based sheet row → need sheetId)
+    // Rows where col A matches selected dates — collect in reverse order so indices don't shift
+    const rowsToDelete = [];
+    for(let i=colA.length-1;i>=1;i--){
+      const d = String((colA[i]||[''])[0]).trim();
+      if(dates.has(d)) rowsToDelete.push(i); // i is 0-based array index = sheet row index
+    }
+
+    if(!rowsToDelete.length){
+      setDeleteStatus('No matching rows found.','error');
+      return;
+    }
+
+    // Get sheet (tab) id
+    setDeleteStatus(`Deleting ${rowsToDelete.length} rows...`,'loading');
+    const metaResp = await fetch(`${base}?fields=sheets.properties`,{headers:{'Authorization':'Bearer '+token}});
+    const meta = await metaResp.json();
+    const sheetId = meta.sheets.find(s=>s.properties.title===SHEET_NAME)?.properties.sheetId ?? 0;
+
+    // Build batchUpdate delete requests (already in reverse order)
+    const requests = rowsToDelete.map(ri=>({
+      deleteDimension:{
+        range:{ sheetId, dimension:'ROWS', startIndex:ri, endIndex:ri+1 }
+      }
+    }));
+
+    const delResp = await fetch(`${base}:batchUpdate`,{
+      method:'POST', headers:hdrs,
+      body: JSON.stringify({requests})
+    });
+    const delData = await delResp.json();
+    if(delData.error) throw new Error(delData.error.message);
+
+    setDeleteStatus(`✓ Deleted ${rowsToDelete.length} rows for ${dates.size} date(s).`,'success');
+    clearSelection();
+    await loadDates(); // refresh the lists
+
+  }catch(err){
+    setDeleteStatus('Error: '+err.message,'error');
+    document.getElementById('deleteBtn').disabled = false;
+  }
+}
+
+function setDeleteStatus(msg,type){
+  const el=document.getElementById('deleteStatus');
+  el.textContent=msg;
+  el.className='delete-status '+type;
+}
+
+// Auto-load dates after login
+const _origLogin = doLogin;
+// Patch: load dates when page becomes visible
+function checkAndLoadDates(){
+  if(sessionStorage.getItem('eagle_admin')==='1') loadDates();
+}
+setTimeout(checkAndLoadDates, 100);
+</script>
+</body>
+</html>
