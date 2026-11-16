@@ -84,12 +84,52 @@ td{padding:12px 16px;vertical-align:middle;}
 
 @media(max-width:600px){
   .header{padding:0 1rem;}
-  .main{padding:1.5rem 1rem;}
+  .main{padding:1.5rem 0.75rem;}
   .hero h1{font-size:22px;}
   .search-row{flex-direction:column;}
   .search-btn{width:100%;justify-content:center;}
   .stats-row{grid-template-columns:repeat(2,1fr);}
-  thead th:nth-child(6),td:nth-child(6){display:none;}
+
+  /* Compact single-row table fit for mobile screens */
+  #tableContainer {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  table {
+    width: 100%;
+    table-layout: auto;
+    font-size: 10px;
+  }
+  thead th {
+    padding: 6px 3px;
+    font-size: 8px;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+  td {
+    padding: 6px 3px;
+    font-size: 10px;
+    line-height: 1.25;
+  }
+  .date-cell, .time-in, .time-out, .hours-cell {
+    font-size: 9.5px;
+    white-space: nowrap;
+  }
+  .day-cell {
+    font-size: 9.5px;
+    white-space: nowrap;
+  }
+  .location-cell {
+    font-size: 9px;
+    max-width: 75px;
+    word-break: break-word;
+  }
+  .badge {
+    padding: 2px 5px;
+    font-size: 8.5px;
+    white-space: nowrap;
+  }
 }
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .footer{text-align:center;color:var(--text3);font-size:12px;padding:2rem;}
